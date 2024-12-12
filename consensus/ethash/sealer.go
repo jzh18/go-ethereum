@@ -22,11 +22,14 @@ import (
 	crand "crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
 	"net/http"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -45,6 +48,62 @@ var (
 	errNoMiningWork      = errors.New("no mining work available yet")
 	errInvalidSealResult = errors.New("invalid or stale proof-of-work solution")
 )
+
+// data: "1,2,3A4,5,6A7,8,9"
+func stringToMatrix(data string) [][]int {
+	var matrix [][]int
+	rows := strings.Split(data, "A")
+	for i := 0; i < len(rows); i++ {
+		cols := strings.Split(rows[i], ",")
+		var row []int
+		for j := 0; j < len(cols); j++ {
+			num, err := strconv.Atoi(cols[j])
+			if err != nil {
+				panic("Invalid matrix data")
+			}
+			row = append(row, num)
+		}
+		matrix = append(matrix, row)
+	}
+	return matrix
+}
+
+func matrixToString(matrix [][]int) string {
+	var data string
+	for i := 0; i < len(matrix); i++ {
+		for j := 0; j < len(matrix[0]); j++ {
+			data += string(strconv.Itoa(matrix[i][j]))
+			if j != len(matrix[0])-1 {
+				data += ","
+			}
+		}
+		if i != len(matrix)-1 {
+			data += "\n"
+		}
+	}
+	return data
+}
+
+func matrixMultiple(matrix_a [][]int, matrix_b [][]int) [][]int {
+	fmt.Println("matrix_a:", matrix_a)
+	fmt.Println("matrix_b:", matrix_b)
+	if len(matrix_a[0]) != len(matrix_b) {
+		panic("Matrix A's column number is not equal to Matrix B's row number")
+	}
+	var matrix [][]int
+	for i := 0; i < len(matrix_a); i++ {
+		var row []int
+		for j := 0; j < len(matrix_b[0]); j++ {
+			var sum int
+			for k := 0; k < len(matrix_a[0]); k++ {
+				sum += matrix_a[i][k] * matrix_b[k][j]
+			}
+			row = append(row, sum)
+		}
+		matrix = append(matrix, row)
+	}
+	return matrix
+}
 
 // Seal implements consensus.Engine, attempting to find a nonce that satisfies
 // the block's difficulty requirements.
@@ -130,6 +189,11 @@ func (ethash *Ethash) Seal(chain consensus.ChainHeaderReader, block *types.Block
 // mine is the actual proof-of-work miner that searches for a nonce starting from
 // seed that results in correct final block difficulty.
 func (ethash *Ethash) mine(block *types.Block, id int, seed uint64, abort chan struct{}, found chan *types.Block) {
+	//for _, tx := range block.Transactions() {
+	//	ethash.config.Log.Warn("tx data:", string(tx.Data()))
+	//	ethash.config.Log.Warn("tx hash:", tx.Hash().String())
+	//}
+
 	// Extract some data from the header
 	var (
 		header  = block.Header()
@@ -146,40 +210,103 @@ func (ethash *Ethash) mine(block *types.Block, id int, seed uint64, abort chan s
 	)
 	logger := ethash.config.Log.New("miner", id)
 	logger.Trace("Started ethash search for new nonces", "seed", seed)
-search:
-	for {
-		select {
-		case <-abort:
-			// Mining terminated, update stats and abort
-			logger.Trace("Ethash nonce search aborted", "attempts", nonce-seed)
-			ethash.hashrate.Mark(attempts)
-			break search
 
-		default:
-			// We don't have to update hash rate on every nonce, so update after after 2^X nonces
-			attempts++
-			if (attempts % (1 << 15)) == 0 {
+	// fixme: do not support multiple transactions in a block yet
+	if len(block.Transactions()) > 1 {
+		panic("Do not support multiple transactions in a block yet")
+	}
+	fmt.Println("len(block.Transactions()):", len(block.Transactions()))
+	if len(block.Transactions()) == 1 && (block.Transactions()[0].Data() != nil || len(block.Transactions()[0].Data()) == 0) {
+		logger.Info("Performing proof of useful work", "mode", "pouw")
+		// Seal and return a block (if still needed)
+	search_useful:
+		for {
+			select {
+			case <-abort:
+				// Mining terminated, update stats and abort
+				logger.Trace("Ethash nonce search aborted", "attempts", nonce-seed)
 				ethash.hashrate.Mark(attempts)
-				attempts = 0
-			}
-			// Compute the PoW value of this nonce
-			digest, result := hashimotoFull(dataset.dataset, hash, nonce)
-			if powBuffer.SetBytes(result).Cmp(target) <= 0 {
-				// Correct nonce found, create a new header with it
-				header = types.CopyHeader(header)
-				header.Nonce = types.EncodeNonce(nonce)
-				header.MixDigest = common.BytesToHash(digest)
+				break search_useful
 
-				// Seal and return a block (if still needed)
+			default:
+				tx := block.Transactions()[0]
+				ethash.config.Log.Warn("Performing proof of useful work", "mode", "pouw", "run", tx.Hash().String())
+				matrix_strs := strings.Split(string(tx.Data()), "*")
+				// split by '*'
+				matrix_a_str := matrix_strs[0]
+				matrix_b_str := matrix_strs[1]
+				matrix_a := stringToMatrix(matrix_a_str)
+				matrix_b := stringToMatrix(matrix_b_str)
+				matrix_c := matrixMultiple(matrix_a, matrix_b) // shape should be m*n == 8
+				fmt.Println("matrix_c:", matrix_c)
+				var nonce [8]byte
+				count := 0
+				for count < 8 {
+					for j := 0; j < len(matrix_c); j++ {
+						for k := 0; k < len(matrix_c[0]); k++ {
+							nonce[count] = byte(matrix_c[j][k])
+							count++
+						}
+					}
+				}
+
+				//hash = ethash.SealHash(header).Bytes()
+
+				//digest, _ := hashimotoFull(dataset.dataset, hash, nonce)
+
+				// Correct nonce found, create a new header with it
+				//header.Extra = []byte(matrixToString(matrix_c))
+				header = types.CopyHeader(header)
+				header.Nonce = nonce
+				//header.MixDigest = common.BytesToHash(digest)
+
 				select {
 				case found <- block.WithSeal(header):
-					logger.Trace("Ethash nonce found and reported", "attempts", nonce-seed, "nonce", nonce)
+					logger.Info("Ethash nonce found and reported", "nonce", nonce)
 				case <-abort:
-					logger.Trace("Ethash nonce found but discarded", "attempts", nonce-seed, "nonce", nonce)
+					logger.Info("Ethash nonce found but discarded", "nonce", nonce)
 				}
-				break search
+				break search_useful
 			}
-			nonce++
+		}
+	} else {
+
+		logger.Info("Performing proof of work", "mode", "pow")
+	search:
+		for {
+			select {
+			case <-abort:
+				// Mining terminated, update stats and abort
+				logger.Trace("Ethash nonce search aborted", "attempts", nonce-seed)
+				ethash.hashrate.Mark(attempts)
+				break search
+
+			default:
+				// We don't have to update hash rate on every nonce, so update after after 2^X nonces
+				attempts++
+				if (attempts % (1 << 15)) == 0 {
+					ethash.hashrate.Mark(attempts)
+					attempts = 0
+				}
+				// Compute the PoW value of this nonce
+				digest, result := hashimotoFull(dataset.dataset, hash, nonce)
+				if powBuffer.SetBytes(result).Cmp(target) <= 0 {
+					// Correct nonce found, create a new header with it
+					header = types.CopyHeader(header)
+					header.Nonce = types.EncodeNonce(nonce)
+					header.MixDigest = common.BytesToHash(digest)
+
+					// Seal and return a block (if still needed)
+					select {
+					case found <- block.WithSeal(header):
+						logger.Trace("Ethash nonce found and reported", "attempts", nonce-seed, "nonce", nonce)
+					case <-abort:
+						logger.Trace("Ethash nonce found but discarded", "attempts", nonce-seed, "nonce", nonce)
+					}
+					break search
+				}
+				nonce++
+			}
 		}
 	}
 	// Datasets are unmapped in a finalizer. Ensure that the dataset stays live
