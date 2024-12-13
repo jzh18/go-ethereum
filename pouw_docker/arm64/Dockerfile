@@ -14,6 +14,9 @@ RUN git clone https://github.com/jzh18/go-ethereum.git
 WORKDIR go-ethereum
 RUN git checkout pouw-dev
 RUN git pull
-RUN make geth
-RUN mv build/bin/geth /usr/local/bin/geth
+RUN make all
+RUN mv build/bin/* /usr/local/bin/
 RUN geth init /go-ethereum/pouw_docker/genesis.json
+
+ENTRYPOINT ["geth"]
+CMD ["--allow-insecure-unlock", "--networkid=6666", "--http", "--http.port=8545", "--http.addr=0.0.0.0", "--http.api=eth,web3,net,admin,personal" ,"--http.corsdomain=*", "--syncmode=full"]
