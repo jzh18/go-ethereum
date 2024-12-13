@@ -19,4 +19,4 @@ RUN mv build/bin/* /usr/local/bin/
 RUN geth init /go-ethereum/pouw_docker/genesis.json
 
 ENTRYPOINT ["geth"]
-CMD ["--allow-insecure-unlock", "--networkid=6666", "--http", "--http.port=8545", "--http.addr=0.0.0.0", "--http.api=eth,web3,net,admin,personal" ,"--http.corsdomain=*", "--syncmode=full"]
+CMD ["--allow-insecure-unlock", "--networkid=6666", "--http", "--http.port=8545", "--http.addr=0.0.0.0", "--http.api=eth,web3,net,admin,personal" ,"--http.corsdomain=*", "--syncmode=full", "--nodekeyhex=cb52412b9421cc389c3a6c42713f6594d4e9fa675f74ea1958adfe81d46c6c23"]
