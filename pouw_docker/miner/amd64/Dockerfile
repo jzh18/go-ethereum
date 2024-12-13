@@ -4,8 +4,8 @@ RUN apt-get update && apt-get install -y build-essential
 
 # Install golang
 RUN apt-get update && apt-get install -y wget
-RUN wget https://go.dev/dl/go1.19.4.linux-arm64.tar.gz
-RUN tar -C /usr/local -xzf go1.19.4.linux-arm64.tar.gz
+RUN wget https://go.dev/dl/go1.19.4.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.19.4.linux-amd64.tar.gz
 ENV PATH=$PATH:/usr/local/go/bin
 
 # Build go-ethereum pouw
@@ -17,6 +17,6 @@ RUN git pull
 RUN make all
 RUN mv build/bin/* /usr/local/bin/
 RUN geth init /go-ethereum/pouw_docker/genesis.json
+COPY  ./entrypoint.sh /entrypoint.sh
 
-ENTRYPOINT ["geth"]
-CMD ["--allow-insecure-unlock", "--networkid=6666", "--http", "--http.port=8545", "--http.addr=0.0.0.0", "--http.api=eth,web3,net,admin,personal" ,"--http.corsdomain=*", "--syncmode=full"]
+ENTRYPOINT ["/entrypoint.sh"]
