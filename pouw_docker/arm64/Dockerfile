@@ -13,10 +13,7 @@ RUN apt-get update && apt-get install -y git
 RUN git clone https://github.com/jzh18/go-ethereum.git
 WORKDIR go-ethereum
 RUN git checkout pouw-dev
+RUN git pull
 RUN make geth
-
-# Create two demo account
-RUN echo ""
-
-CMD ["./build/bin/geth"]
-
+RUN mv build/bin/geth /usr/local/bin/geth
+RUN geth init /go-ethereum/pouw_docker/genesis.json
