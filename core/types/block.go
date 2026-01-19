@@ -87,8 +87,6 @@ type Header struct {
 	// WithdrawalsHash was added by EIP-4895 and is ignored in legacy headers.
 	WithdrawalsHash *common.Hash `json:"withdrawalsRoot" rlp:"optional"`
 
-	// BlobGasUsed was added by EIP-4844 and is ignored in legacy headers.
-	BlobGasUsed *uint64 `json:"blobGasUsed" rlp:"optional"`
 
 	// ExcessBlobGas was added by EIP-4844 and is ignored in legacy headers.
 	ExcessBlobGas *uint64 `json:"excessBlobGas" rlp:"optional"`
