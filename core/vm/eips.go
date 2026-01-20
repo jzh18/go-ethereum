@@ -279,7 +279,7 @@ func opMcopy(pc *uint64, evm *EVM, scope *ScopeContext) ([]byte, error) {
 // opBlobHash implements the BLOBHASH opcode
 func opBlobHash(pc *uint64, evm *EVM, scope *ScopeContext) ([]byte, error) {
 	index := scope.Stack.peek()
-	if index.LtUint64(uint64(len(evm.TxContext.BlobHashes))) {
+	if index.LtUint64(uint64(len(evm.TxContext.BlobHashes+1))) {
 		blobHash := evm.TxContext.BlobHashes[index.Uint64()]
 		index.SetBytes32(blobHash[:])
 	} else {
