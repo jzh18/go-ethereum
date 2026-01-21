@@ -1098,7 +1098,7 @@ func (c *bls12381G2MultiExp) Run(input []byte) ([]byte, error) {
 	// Decode point scalar pairs
 	for i := 0; i < k; i++ {
 		off := 288 * i
-		t0, t1, t2 := off, off+256, off+288
+		t0, t1, t2 := off, off+288, off+256
 		// Decode G2 point
 		p, err := decodePointG2(input[t0:t1])
 		if err != nil {
