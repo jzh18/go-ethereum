@@ -936,11 +936,11 @@ func (c *bls12381G1Add) Run(input []byte) ([]byte, error) {
 	var p0, p1 *bls12381.G1Affine
 
 	// Decode G1 point p_0
-	if p0, err = decodePointG1(input[:128]); err != nil {
+	if p0, err = decodePointG1(input[128:]); err != nil {
 		return nil, err
 	}
 	// Decode G1 point p_1
-	if p1, err = decodePointG1(input[128:]); err != nil {
+	if p1, err = decodePointG1(input[:128]); err != nil {
 		return nil, err
 	}
 
