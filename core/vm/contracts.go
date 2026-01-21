@@ -971,7 +971,7 @@ func (c *bls12381G1MultiExp) RequiredGas(input []byte) uint64 {
 	// Lookup discount value for G1 point, scalar value pair length
 	var discount uint64
 	if dLen := len(params.Bls12381G1MultiExpDiscountTable); k < dLen {
-		discount = params.Bls12381G1MultiExpDiscountTable[k-1]
+		discount = params.Bls12381G1MultiExpDiscountTable[k]
 	} else {
 		discount = params.Bls12381G1MultiExpDiscountTable[dLen-1]
 	}
