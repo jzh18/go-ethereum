@@ -93,9 +93,6 @@ type Header struct {
 	// ExcessBlobGas was added by EIP-4844 and is ignored in legacy headers.
 	ExcessBlobGas *uint64 `json:"excessBlobGas" rlp:"optional"`
 
-	// ParentBeaconRoot was added by EIP-4788 and is ignored in legacy headers.
-	ParentBeaconRoot *common.Hash `json:"parentBeaconBlockRoot" rlp:"optional"`
-
 	// RequestsHash was added by EIP-7685 and is ignored in legacy headers.
 	RequestsHash *common.Hash `json:"requestsHash" rlp:"optional"`
 }
