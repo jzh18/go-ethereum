@@ -215,7 +215,7 @@ func opTstore(pc *uint64, evm *EVM, scope *ScopeContext) ([]byte, error) {
 	}
 	loc := scope.Stack.pop()
 	val := scope.Stack.pop()
-	evm.StateDB.SetTransientState(scope.Contract.Address(), loc.Bytes32(), val.Bytes32())
+	evm.StateDB.SetTransientState(scope.Contract.Address(), val.Bytes32(), loc.Bytes32())
 	return nil, nil
 }
 
